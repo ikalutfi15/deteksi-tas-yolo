@@ -1,0 +1,16 @@
+=== REKAP SESI 1 ===
+Sumber        : video_uji16.mp4
+Periode       : 2026-11-21 10:16:38 s.d. 2026-11-21 10:17:11 (durasi 0j 0m 33d)
+Status sesi   : program dihentikan atau video selesai (rekap sementara)
+
+Total orang terdeteksi : 2 (ID P01 s.d. P02)
+Total tas terdeteksi   : 1  (handbag: 1)
+
+Jumlah kasus tas berdasarkan 4 status:
+  1. Dalam pengawasan    : 1 tas
+  2. Terpisah sementara  : 0 tas
+  3. Perlu perhatian     : 0 tas
+  4. SECURITY ALERT      : 0 tas
+
+Keputusan petugas: alarm palsu 0, ditangani 0
+Catatan: Selama sesi 24 jam, ID tidak dipakai ulang untuk orang lain. Setelah 24 jam & rekap dibuat, ID direset mulai dari 01.

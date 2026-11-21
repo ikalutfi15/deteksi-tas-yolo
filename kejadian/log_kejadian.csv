@@ -97,3 +97,10 @@ waktu_video_s,id_tas,jenis,kejadian,jarak_penjaga_m,terpisah_2m_s,terpisah_3m_s
 13.6,1,handbag,ATTENDED,0.9,0.0,0.0
 9.4,1,handbag,TEMP_UNATTENDED,,0.0,0.0
 13.6,1,handbag,ATTENDED,0.9,0.0,0.0
+22.2,1,handbag,TEMP_UNATTENDED,2.0,0.0,0.0
+22.2,1,handbag,TEMP_UNATTENDED,2.0,0.0,0.0
+22.2,1,handbag,TEMP_UNATTENDED,2.0,0.0,0.0
+22.2,1,handbag,TEMP_UNATTENDED,2.0,0.0,0.0
+22.2,1,handbag,TEMP_UNATTENDED,2.0,0.0,0.0
+8.9,1,handbag,TEMP_UNATTENDED,,0.0,0.0
+14.6,1,handbag,ATTENDED,0.93,0.0,0.0

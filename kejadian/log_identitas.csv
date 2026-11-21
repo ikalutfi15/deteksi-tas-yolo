@@ -3,3 +3,29 @@ waktu_video_s,id_mentah_baru,id_stabil,selisih_posisi_px,hilang_s
 21.2,19,3,58.4,0.4
 7.1,9,3,disambung,hilang 3.4s; selisih posisi 428px
 7.2,11,4,orang_baru,P01: ukuran beda (x0.5)
+13.7,69,4,disambung,hilang 0.0s; selisih posisi 13px
+13.5,57,2,disambung,hilang 0.0s; selisih posisi 31px
+13.7,57,2,disambung,hilang 0.0s; selisih posisi 38px
+13.8,2,2,disambung,hilang 0.0s; selisih posisi 17px
+7.2,9,1,disambung,hilang 0.2s; selisih posisi 72px
+20.9,12,1,disambung,hilang 0.0s; selisih posisi 85px
+29.8,25,4,orang_baru,P01: terakhir terlihat di tepi layar (dianggap keluar)
+7.2,9,1,disambung,hilang 0.2s; selisih posisi 72px
+20.9,12,1,disambung,hilang 0.0s; selisih posisi 85px
+29.8,25,4,orang_baru,P01: terakhir terlihat di tepi layar (dianggap keluar)
+7.2,9,1,disambung,hilang 0.2s; selisih posisi 72px
+20.9,12,1,disambung,hilang 0.0s; selisih posisi 85px
+29.8,25,4,orang_baru,P01: terakhir terlihat di tepi layar (dianggap keluar)
+0.6,1,1,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+3.8,4,2,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+0.6,1,1,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+3.8,4,2,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+0.6,1,1,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+3.8,4,2,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+21.4,19,3,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+29.8,25,4,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+0.6,1,1,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+3.8,4,2,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+21.4,19,3,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+29.8,25,4,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
+7.7,9,3,orang_baru,P01: ukuran beda (x1.5)
