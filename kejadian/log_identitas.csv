@@ -29,3 +29,14 @@ waktu_video_s,id_mentah_baru,id_stabil,selisih_posisi_px,hilang_s
 21.4,19,3,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
 29.8,25,4,orang_baru_terkunci,ID baru dikunci selama sesi 24 jam
 7.7,9,3,orang_baru,P01: ukuran beda (x1.5)
+9.1,50,3,disambung,hilang 2.0s; selisih posisi 19px
+14.4,60,2,disambung,hilang 5.2s; selisih posisi 117px
+7.2,7,1,disambung,hilang 0.2s; selisih posisi 72px
+20.9,10,1,disambung,hilang 0.0s; selisih posisi 85px
+29.8,18,4,orang_baru,P01: terakhir terlihat di tepi layar (dianggap keluar)
+7.7,7,3,orang_baru,P01: relink nonaktif (ID terkunci unik per orang)
+21.1,10,4,orang_baru,P03: relink nonaktif (ID terkunci unik per orang)
+21.8,12,5,orang_baru,P03: relink nonaktif (ID terkunci unik per orang)
+4.4,3,3,orang_baru,P02: relink nonaktif (ID terkunci unik per orang)
+5.0,3,4,orang_baru,P02: relink nonaktif (ID terkunci unik per orang); P03: relink nonaktif (ID terkunci unik per orang)
+26.5,10,6,orang_baru,P01: relink nonaktif (ID terkunci unik per orang)

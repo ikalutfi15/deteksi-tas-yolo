@@ -1,6 +1,7 @@
 import csv
 import math
 import os
+import string
 import time
 from collections import Counter
 from datetime import datetime, timedelta
@@ -11,11 +12,19 @@ from ultralytics import YOLO
 
 # ===================== PENGATURAN =====================
 SOURCE = "video_uji16.mp4"    # 0 = webcam, atau path video / URL RTSP
-MODEL_PATH = "yolov8n.pt"     # Gunakan yolov8n.pt agar lebih ringan di CPU
-IMGSZ = 640                   # Turunkan ke 640 agar proses per frame jauh lebih cepat
+
+# --- Model ---
+MODEL_PATH = "yolov8n.pt"     # model untuk ORANG (dilacak setiap frame)
+BAG_MODEL_PATH = "yolov8s.pt" # model untuk TAS. Lebih besar = lebih peka. Boleh diisi sama dengan MODEL_PATH
+IMGSZ = 640                   # ukuran gambar untuk orang
+BAG_IMGSZ = 640               # ukuran gambar untuk tas. Naikkan ke 960 bila tas kecil/jauh sering terlewat (lebih lambat)
+BAG_EVERY = 2                 # deteksi tas setiap N frame (tas bergerak pelan; naikkan bila terlalu lambat)
+
+# --- Ambang keyakinan ---
 CONF_PERSON = 0.35            # ambang untuk orang BARU
 CONF_PERSON_TRACKED = 0.20    # ambang lebih longgar untuk orang yang identitasnya sudah dikenal
-CONF_BAG = 0.20
+CONF_BAG_MIN = 0.12           # ambang terendah tas yang masih dipertimbangkan
+CONF_BAG_STRONG = 0.35        # tas dengan keyakinan >= ini dianggap yakin
 PERSON_CLASS = 0
 BAG_CLASSES = {24: "backpack", 26: "handbag", 28: "suitcase"}
 
@@ -26,42 +35,50 @@ T_SUSPICIOUS = 5.0    # s.
 T_ABANDONED = 10.0    # s.
 T_PROX = 5.0          # s. Dekat tas selama ini -> jadi pemilik pengganti
 CARRY_WINDOW = 1.5    # s. Tas baru bergerak + ada di dalam kotak orang
+INSIDE_OWNER_S = 1.5  # s. Tas berada di dalam kotak seseorang selama ini -> orang itu pembawanya
 
 # --- Kalibrasi jarak (piksel -> meter) ---
 PERSON_HEIGHT_M = 1.7       # tinggi orang rata-rata
 PIXELS_PER_METER = None     # None = pakai tinggi orang otomatis
 
 # --- Pelacakan tas ---
-MOVE_PX = 25        # geser > ini (piksel) = tas dianggap bergerak/dibawa
-MATCH_PX = 80       # jarak maks (piksel) menyambung deteksi ke tas
-BAG_MEMORY_S = 60.0 # detik; tas tak terlihat selama ini baru dilupakan statusnya (ID-nya tetap dicadangkan)
-GHOST_DRAW = 3.0    # detik; kotak tas yang sesaat tak terdeteksi tetap digambar
+MOVE_PX = 25          # geser > ini (piksel) = tas dianggap bergerak/dibawa
+MATCH_PX = 90         # jarak maks (piksel) menyambung deteksi ke tas yang sudah ada
+MATCH_IOU = 0.20      # atau tumpang tindih minimum dengan tas yang sudah ada
+BAG_MEMORY_S = 60.0   # detik; tas tak terlihat selama ini baru dilupakan statusnya (ID-nya tetap dicadangkan)
+GHOST_DRAW = 3.0      # detik; kotak tas yang sesaat tak terdeteksi tetap digambar
+BAG_CONFIRM_S = 1.0   # s. tas baru diberi ID setelah terdeteksi selama ini di tempat yang sama
+BAG_WEAK_WEIGHT = 0.25# deteksi lemah (keyakinan rendah dan tidak di badan orang) dihitung seperempat, jadi butuh ~4x lebih lama
+BAG_DUP_IOU = 0.5     # dua kotak tas yang menumpuk >= ini dianggap tas yang sama
+BAG_MIN_PX = 12       # kotak tas lebih kecil dari ini (lebar atau tinggi) diabaikan
+BAG_MAX_FRAC = 0.35   # kotak tas lebih besar dari ini x luas layar diabaikan
 
 # --- Kesinambungan identitas orang (mengatasi identity switch) ---
-LOCK_PERSON_ID = True           # True = ID orang yang sudah terkonfirmasi dikunci pada jangkarnya
-LOCK_ANCHOR_RADIUS_PX = 95.0    # radius (px) untuk mengunci kotak ke pemilik ID yang sudah terkunci
-LOCK_MIN_IOU = 0.20             # tumpang tindih minimum dengan kotak acuan untuk tetap mengunci ID
-STATIONARY_MAX_PX = 60.0        # batas geser pusat kotak (px) untuk menganggap orang duduk/diam
+LOCK_PERSON_ID = True           # True = ID orang dikunci pada tempatnya; ID mentah yang melompat jauh dilepas
+LOCK_ANCHOR_H = 1.0             # radius penguncian, dalam satuan tinggi badan
+LOCK_MIN_IOU = 0.15             # tumpang tindih minimum dengan kotak acuan untuk tetap mengunci ID
+LOCK_AFTER_S = 0.25              # s. ID dikunci setelah terlihat selama ini
+STATIONARY_ANCHOR_PX = 55.0     # batas geser (px) untuk menjaga jangkar tetap stabil saat duduk/diam
+ANCHOR_ALPHA = 0.2              # seberapa cepat jangkar mengikuti orang yang bergerak (0-1)
 TRACK_BUFFER_S = 3.0            # s. ByteTrack mengingat track yang hilang selama ini
-RELINK_S = 8.0                  # s. ID baru boleh disambung ke orang yang hilang paling lama sekian detik lalu
+RELINK_S = 0.0                  # 0.0 = tidak menyambung ulang ke orang yang sudah hilang agar ID tidak pernah tertukar ke orang lain
 RELINK_DIST_H = 0.6             # jarak maks pusat kotak, dalam satuan tinggi badan
-RELINK_SPEED_GAIN = 1.5         # tambahan jarak berdasarkan kecepatan
-EDGE_PX = 10                    # orang yang terakhir terlihat menempel di tepi kiri/kanan layar
+RELINK_SPEED_GAIN = 1.5         # tambahan jarak berdasarkan kecepatan terakhir
+EDGE_PX = 10                    # orang yang terakhir terlihat menempel di tepi kiri/kanan layar dianggap keluar
 RELINK_SIZE_TOL = 1.6           # rasio tinggi kotak lama vs baru
-RELINK_IOU = 0.30               # kotak baru yang menumpuk >= ini dengan kotak acuan lama
+RELINK_IOU = 0.30               # kotak baru yang menumpuk >= ini dengan kotak acuan lama dianggap orang yang sama
 OCC_OVERLAP = 0.15              # kotak yang tertutup orang lain >= ini dianggap terhalang
-REF_STALE_S = 4.0               # s. pembaruan kotak acuan jika terhalang terlalu lama
+REF_STALE_S = 4.0               # s. kotak acuan tetap diperbarui bila terhalang selama ini
 RELINK_SHRINK = 0.75            # kotak yang tingginya < ini x kotak acuan dianggap kotak sebagian
 GHOST_PERSON_S = 2.5            # s. orang yang hilang sesaat tetap dihitung di posisi terakhirnya
 
 # --- ID terkunci selama satu sesi ---
-SESSION_S = 24 * 3600   # s. Selama sesi ini ID person dan tas TIDAK dipakai ulang
+SESSION_S = 24 * 3600   # s. Selama sesi ini ID person dan tas TIDAK dipakai ulang; setelah itu direkap lalu direset
 REPORT_DIR = "laporan"
 PERSON_CONFIRM_S = 0.6  # s. orang baru diberi ID setelah terdeteksi selama ini
-BAG_CONFIRM_S = 1.0     # s. tas baru diberi ID setelah terdeteksi selama ini
 TENT_EXPIRE_S = 1.0     # s. kandidat yang tak terdeteksi selama ini dibuang
 TENT_DIST_H = 0.5       # jarak maks antar deteksi kandidat orang, dalam satuan tinggi badan
-DUP_IOU = 0.6           # kotak yang menumpuk >= ini dianggap deteksi ganda
+DUP_IOU = 0.6           # kotak orang yang menumpuk >= ini dianggap deteksi ganda
 
 # --- Pengenalan ulang orang yang kembali setelah lama pergi (EKSPERIMENTAL, bawaan MATI) ---
 REID_ENABLED = False
@@ -90,13 +107,34 @@ GRAY = (130, 130, 130)
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 
+def index_to_letter(idx):
+    """Konversi indeks 0, 1, 2, ... menjadi A, B, C, ..., Z, AA, AB, ..."""
+    chars = []
+    n = max(int(idx), 0)
+    while True:
+        chars.append(string.ascii_uppercase[n % 26])
+        n = n // 26 - 1
+        if n < 0:
+            break
+    return "".join(reversed(chars))
+
+
+def format_luggage_code(person_num, sub_idx):
+    """Format ID tas mengikuti nomor person: misal 01(A), 01(B), atau 00(A) bila tanpa person."""
+    p_num = max(int(person_num or 0), 0)
+    return f"{p_num:02d}({index_to_letter(sub_idx)})"
+
+
 class Bag:
-    def __init__(self, key, box, label, t, owner):
+    def __init__(self, key, code, person_num, box, label, t, owner):
         self.key = key
+        self.code = code
+        self.person_num = person_num
         self.box = box
         self.label = label
         self.first_seen = t
         self.last_seen = t
+        self.last_upd = t
         self.anchor = center(box)
         self.last_move_t = -1e9
         self.owner = owner
@@ -136,12 +174,14 @@ def dist_m(bag_box, person_box):
 
 
 def nearest(box, persons):
-    best_id, best_d = None, float("inf")
+    """Orang terdekat dari tas."""
+    best_id, best_key = None, (float("inf"), float("inf"))
+    bx = center(box)[0]
     for pid, pbox in persons:
-        d = dist_m(box, pbox)
-        if d < best_d:
-            best_id, best_d = pid, d
-    return best_id, best_d
+        key = (round(dist_m(box, pbox), 3), abs(bx - center(pbox)[0]))
+        if key < best_key:
+            best_id, best_key = pid, key
+    return best_id, best_key[0]
 
 
 def box_iou(a, b):
@@ -157,6 +197,10 @@ def covered_frac(a, b):
     ix2, iy2 = min(a[2], b[2]), min(a[3], b[3])
     inter = max(ix2 - ix1, 0.0) * max(iy2 - iy1, 0.0)
     return inter / max((a[2] - a[0]) * (a[3] - a[1]), 1.0)
+
+
+def point_in_box(p, b):
+    return b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3]
 
 
 def appearance(frame, box):
@@ -176,10 +220,10 @@ def appearance(frame, box):
 
 class Tentative:
     def __init__(self, need_hits):
-        self.need = max(1, int(need_hits))
+        self.need = max(1.0, float(need_hits))
         self.items = []
 
-    def hit(self, box, t, radius):
+    def hit(self, box, t, radius, weight=1.0):
         cx, cy = center(box)
         best, found = radius, None
         for it in self.items:
@@ -189,10 +233,10 @@ class Tentative:
             if d < best:
                 best, found = d, it
         if found is None:
-            found = {"c": (cx, cy), "hits": 0, "t": t}
+            found = {"c": (cx, cy), "hits": 0.0, "t": t}
             self.items.append(found)
         found["c"], found["t"] = (cx, cy), t
-        found["hits"] += 1
+        found["hits"] += weight
         if found["hits"] >= self.need:
             self.items.remove(found)
             return True
@@ -203,19 +247,25 @@ class Tentative:
 
 
 class PersonMemory:
+    """
+    Mengelola ID stabil orang selama 1 sesi (24 jam):
+    - ID diberikan berurutan (P01, P02, P03, ...) saat orang baru terkonfirmasi.
+    - ID yang sudah terikat ke seseorang dikunci sepanjang sesi dan tidak pernah
+      dipakai/diambil alih oleh orang lain, meskipun pemilik ID sudah keluar dari kamera.
+    """
     def __init__(self, fps):
-        self.raw2sid = {}        # ID mentah ByteTrack -> ID stabil
-        self.locked_sids = set() # ID stabil yang sudah terkonfirmasi dan dikunci
-        self.ref = {}            # ID stabil -> kotak acuan terakhir yang valid
-        self.anchor = {}         # ID stabil -> posisi jangkar terkunci
-        self.ref_t = {}          # ID stabil -> waktu kotak acuan diperbarui
-        self.seen_t = {}         # ID stabil -> waktu terakhir terlihat
-        self.app = {}            # ID stabil -> histogram warna
-        self.vel = {}            # ID stabil -> kecepatan terakhir (px/s)
-        self.samp = {}           # ID stabil -> (posisi, waktu)
-        self.edge = {}           # ID stabil -> True bila di tepi layar
-        self.records = {}        # ID stabil -> catatan rekap
-        self.next_sid = 0
+        self.raw2sid = {}         # ID mentah ByteTrack aktif -> ID stabil
+        self.locked_sids = set()  # ID stabil yang sudah terkonfirmasi dan dikunci
+        self.ref = {}             # ID stabil -> kotak acuan terakhir yang tidak tertutup
+        self.ref_t = {}           # ID stabil -> waktu kotak acuan diperbarui
+        self.anchor = {}          # ID stabil -> posisi jangkar
+        self.seen_t = {}          # ID stabil -> waktu terakhir terlihat
+        self.app = {}             # ID stabil -> histogram warna
+        self.vel = {}             # ID stabil -> kecepatan terakhir (piksel/detik)
+        self.samp = {}            # ID stabil -> (posisi, waktu)
+        self.edge = {}            # ID stabil -> True bila terakhir terlihat di tepi layar
+        self.records = {}         # ID stabil -> catatan untuk rekap
+        self.next_sid = 0         # hanya naik; ID tidak pernah direset atau dipakai ulang dalam sesi
         self.relinks = []
         self.tent = Tentative(round(PERSON_CONFIRM_S * fps))
         self._prev_t = None
@@ -228,16 +278,18 @@ class PersonMemory:
             sid, {"first_t": t, "last_t": t, "seen_s": 0.0, "relinks": 0, "reid": 0})
 
     def _fits_locked_anchor(self, sid, box):
-        """Cek apakah kotak berada di jangkar / area orang yang sudah dikunci."""
-        if sid not in self.anchor:
-            return False
+        if sid not in self.anchor or sid not in self.ref:
+            return True
+        rbox = self.ref[sid]
+        lh = max(rbox[3] - rbox[1], 1.0)
+        radius = max(LOCK_ANCHOR_H * lh, 60.0)
         cx, cy = center(box)
         ax, ay = self.anchor[sid]
-        d_anchor = math.hypot(cx - ax, cy - ay)
-        iou_ref = box_iou(box, self.ref[sid]) if sid in self.ref else 0.0
-        return d_anchor <= LOCK_ANCHOR_RADIUS_PX or iou_ref >= LOCK_MIN_IOU
+        return math.hypot(cx - ax, cy - ay) <= radius or box_iou(box, rbox) >= LOCK_MIN_IOU
 
     def _match(self, box, t, sid):
+        if RELINK_S <= 0:
+            return None, "relink nonaktif (ID terkunci unik per orang)"
         elapsed = t - self.seen_t[sid]
         if elapsed <= 0:
             return None, "masih terlihat"
@@ -270,7 +322,7 @@ class PersonMemory:
             return None
         scores = []
         for sid, ap in self.app.items():
-            if sid in used or t - self.seen_t[sid] <= RELINK_S:
+            if sid in used or t - self.seen_t[sid] <= max(RELINK_S, 1.0):
                 continue
             scores.append((float(np.sqrt(a * ap).sum()), sid))
         if not scores:
@@ -283,86 +335,94 @@ class PersonMemory:
         return None
 
     def resolve(self, dets, t, frame=None):
+        """
+        dets: [(id_mentah, kotak)] pada frame ini.
+        Mengembalikan (terlihat, hantu, penyambungan, dikenali_ulang, orang_baru).
+        """
         dt = 0.0 if self._prev_t is None else min(max(t - self._prev_t, 0.0), 1.0)
         self._prev_t = t
         n_before = len(self.relinks)
-        visible, used, pending = [], set(), []
+        visible, used, fresh = [], set(), set()
 
-        # Tahap 1: Cegah ID terkunci direbut oleh orang lain yang bergerak melintas.
-        # Jika raw_id menunjuk ke sid yang sudah dikunci, tetapi kotaknya jauh dari jangkar sid,
-        # lepaskan dulu agar tidak mencuri ID orang yang duduk/terkunci.
-        candidates_for_lock = []
+        # Bersihkan pemetaan raw_id yang tidak muncul di frame ini
+        active_raw = {raw for raw, _ in dets}
+        for stale_raw in [r for r in self.raw2sid if r not in active_raw]:
+            del self.raw2sid[stale_raw]
+
+        # Buang deteksi ganda pada dets mentah terlebih dahulu
+        unique_dets = []
         for raw, box in dets:
-            sid = self.raw2sid.get(raw)
-            if sid is not None and sid not in used:
-                if LOCK_PERSON_ID and sid in self.locked_sids and not self._fits_locked_anchor(sid, box):
-                    del self.raw2sid[raw]
-                    pending.append((raw, box))
-                    candidates_for_lock.append((raw, box))
+            if any(box_iou(box, kb) >= DUP_IOU for _, kb in unique_dets):
+                continue
+            unique_dets.append((raw, box))
+
+        claimed_indices = set()
+
+        # Tahap 0 (Prioritas Kunci ID): Pasangkan seluruh kandidat (locked_sid, det_idx)
+        # terbaik terlebih dahulu agar ID terkunci (P01, P02, ...) tetap menempel pada orangnya.
+        if LOCK_PERSON_ID and self.locked_sids:
+            candidates = []
+            for sid in sorted(self.locked_sids):
+                if sid not in self.anchor or sid not in self.ref:
                     continue
+                rbox = self.ref[sid]
+                lh = max(rbox[3] - rbox[1], 1.0)
+                radius = max(LOCK_ANCHOR_H * lh, 60.0)
+                ax, ay = self.anchor[sid]
+                for i, (raw, box) in enumerate(unique_dets):
+                    cx, cy = center(box)
+                    d = math.hypot(cx - ax, cy - ay)
+                    iou = box_iou(box, rbox)
+                    raw_match = (self.raw2sid.get(raw) == sid)
+                    if d <= radius or iou >= LOCK_MIN_IOU or (raw_match and d <= radius * 1.35):
+                        score = (d / max(radius, 1.0)) - (1.8 * iou) - (0.4 * raw_match)
+                        candidates.append((score, sid, i))
+            candidates.sort()
+            for _, sid, i in candidates:
+                if sid in used or i in claimed_indices:
+                    continue
+                raw, box = unique_dets[i]
+                claimed_indices.add(i)
+                used.add(sid)
+                self.raw2sid[raw] = sid
+                visible.append((sid, box))
+
+        # Tahap 1: Pasangkan sisa deteksi yang raw_id-nya sudah dipetakan ke sid yang belum dipakai
+        # dan belum pernah dikunci ke orang lain.
+        pending = []
+        for i, (raw, box) in enumerate(unique_dets):
+            if i in claimed_indices:
+                continue
+            sid = self.raw2sid.get(raw)
+            if sid is not None and sid not in used and sid not in self.locked_sids:
+                claimed_indices.add(i)
                 used.add(sid)
                 visible.append((sid, box))
             else:
                 if sid is not None:
                     del self.raw2sid[raw]
                 pending.append((raw, box))
-                candidates_for_lock.append((raw, box))
 
-        # Tahap 1b: Jika ada sid yang sudah terkunci namun belum terpasang di frame ini
-        # (misalnya karena tid ByteTrack tertukar saat orang lewat), kembalikan sid
-        # ke kotak yang paling cocok dengan jangkarnya terlebih dahulu.
-        if LOCK_PERSON_ID:
-            locked_candidates = []
-            for sid in sorted(self.locked_sids):
-                if sid in used or sid not in self.anchor:
-                    continue
-                ax, ay = self.anchor[sid]
-                best_idx, best_d = None, LOCK_ANCHOR_RADIUS_PX
-                for idx, (raw, box) in enumerate(pending):
-                    if any(box_iou(box, vb) >= DUP_IOU for _, vb in visible):
-                        continue
-                    cx, cy = center(box)
-                    d = math.hypot(cx - ax, cy - ay)
-                    iou_r = box_iou(box, self.ref[sid]) if sid in self.ref else 0.0
-                    if d <= best_d or iou_r >= LOCK_MIN_IOU:
-                        score = d - (100.0 * iou_r)
-                        if score < best_d:
-                            best_d = score
-                            best_idx = idx
-                if best_idx is not None:
-                    raw, box = pending.pop(best_idx)
-                    self.raw2sid[raw] = sid
-                    used.add(sid)
-                    visible.append((sid, box))
-
-        # Buang deteksi ganda
-        kept = []
-        for raw, box in pending:
-            if any(box_iou(box, vb) >= DUP_IOU for _, vb in visible) or \
-               any(box_iou(box, kb) >= DUP_IOU for _, kb in kept):
-                continue
-            kept.append((raw, box))
-        pending = kept
-
-        # Tahap 2: Sambungkan sisa deteksi ke orang yang baru hilang
+        # Tahap 2: penyambungan opsional bila RELINK_S > 0
         pairs = []
-        for pi, (raw, box) in enumerate(pending):
-            for sid in self.seen_t:
-                if sid in used:
-                    continue
-                res, _ = self._match(box, t, sid)
-                if res is not None:
-                    lock_bonus = -10.0 if sid in self.locked_sids else 0.0
-                    pairs.append((res[0] + lock_bonus, pi, sid, res[1], res[2]))
+        if RELINK_S > 0:
+            for pi, (raw, box) in enumerate(pending):
+                for sid in self.seen_t:
+                    if sid in used or sid in self.locked_sids:
+                        continue
+                    res, _ = self._match(box, t, sid)
+                    if res is not None:
+                        pairs.append((res[0], pi, sid, res[1], res[2]))
         pairs.sort()
         assigned = {}
-        for _, pi, sid, dist, elapsed in pairs:
+        for cost, pi, sid, dist, elapsed in pairs:
             if pi in assigned or sid in used:
                 continue
             assigned[pi] = sid
             used.add(sid)
             self.relinks.append((t, pending[pi][0], sid, dist, elapsed))
 
+        # Tahap 3: orang baru selalu mendapat ID baru berurutan yang tidak dipakai ulang
         reids, new_ids = [], []
         for pi, (raw, box) in enumerate(pending):
             if pi in assigned:
@@ -380,18 +440,19 @@ class PersonMemory:
                 else:
                     reasons = []
                     for cand in self.seen_t:
-                        if cand not in used and 0 < t - self.seen_t[cand] <= RELINK_S:
+                        if cand not in used and 0 < t - self.seen_t[cand] <= max(RELINK_S, 2.0):
                             reasons.append((cand, self._match(box, t, cand)[1]))
                     self.next_sid += 1
                     sid = self.next_sid
                     if reasons:
                         new_ids.append((t, raw, sid, reasons))
                 used.add(sid)
+            fresh.add(sid)
             self.raw2sid[raw] = sid
             visible.append((sid, box))
         self.tent.expire(t)
 
-        # Perbarui ingatan & kunci ID orang yang sudah terkonfirmasi
+        # Perbarui ingatan & kunci ID sepanjang sesi
         fw = frame.shape[1] if frame is not None else None
         for sid, box in visible:
             occluded = any(covered_frac(box, other) >= OCC_OVERLAP
@@ -401,23 +462,22 @@ class PersonMemory:
                 shrunk = (box[3] - box[1]) < RELINK_SHRINK * rh
             else:
                 shrunk = False
+            clean = not (occluded or shrunk)
             stale = (t - self.ref_t.get(sid, -1e9)) > REF_STALE_S
-            if sid not in self.ref or stale or not (occluded or shrunk):
+            if sid not in self.ref or stale or clean:
                 self.ref[sid] = box
                 self.ref_t[sid] = t
 
-            if sid not in self.anchor:
-                self.anchor[sid] = center(box)
-            elif not (occluded or shrunk):
-                # Jika orang duduk/diam (geser <= STATIONARY_MAX_PX), pertahankan jangkar awal
-                # agar tidak terseret jika ada orang lewat di depannya
-                c = center(box)
+            c = center(box)
+            if sid not in self.anchor or sid in fresh:
+                self.anchor[sid] = c
+            elif clean:
                 ax, ay = self.anchor[sid]
-                if math.hypot(c[0] - ax, c[1] - ay) > STATIONARY_MAX_PX and self.vel.get(sid, 0.0) > 25.0:
-                    self.anchor[sid] = c
+                drift = math.hypot(c[0] - ax, c[1] - ay)
+                if drift > STATIONARY_ANCHOR_PX or self.vel.get(sid, 0.0) > 25.0:
+                    self.anchor[sid] = (ax + ANCHOR_ALPHA * (c[0] - ax), ay + ANCHOR_ALPHA * (c[1] - ay))
 
-            if not (occluded or shrunk):
-                c = center(box)
+            if clean:
                 sc, st0 = self.samp.get(sid, (None, None))
                 if sc is None:
                     self.samp[sid] = (c, t)
@@ -427,17 +487,16 @@ class PersonMemory:
                     self.samp[sid] = (c, t)
                 if fw is not None:
                     self.edge[sid] = box[0] <= EDGE_PX or box[2] >= fw - EDGE_PX
-
-            if REID_ENABLED and frame is not None and not (occluded or shrunk):
-                a = appearance(frame, box)
-                if a is not None:
-                    self.app[sid] = a if sid not in self.app else 0.9 * self.app[sid] + 0.1 * a
+                if REID_ENABLED and frame is not None:
+                    a = appearance(frame, box)
+                    if a is not None:
+                        self.app[sid] = a if sid not in self.app else 0.9 * self.app[sid] + 0.1 * a
 
             self.seen_t[sid] = t
             rec = self._rec(sid, t)
             rec["last_t"] = t
             rec["seen_s"] += dt
-            if rec["seen_s"] >= PERSON_CONFIRM_S * 0.5:
+            if rec["seen_s"] >= LOCK_AFTER_S:
                 self.locked_sids.add(sid)
 
         ghosts = [(sid, self.ref[sid]) for sid, st in self.seen_t.items()
@@ -446,31 +505,99 @@ class PersonMemory:
 
 
 class Session:
+    """
+    Sesi pengawasan 24 jam:
+    - ID person (P01, P02, ...) dan ID tas (01(A), 01(B), ...) terkunci sepanjang sesi.
+    - Setiap person memiliki counter huruf sendiri (A, B, C, ...) untuk barang-barangnya.
+    """
     def __init__(self, t0, fps, number):
         self.number = number
         self.t0 = t0
         self.clock0 = datetime.now()
         self.pm = PersonMemory(fps)
-        self.bags = {}
-        self.id2key = {}
-        self.next_key = 0
-        self.bag_rec = {}
-        self.bag_tent = Tentative(round(BAG_CONFIRM_S * fps))
+        self.bags = {}             # key -> Bag aktif
+        self.next_key = 0          # kunci internal unik per tas
+        self.person_bag_idx = {}   # person_num (0, 1, 2, ...) -> jumlah barang yang sudah diberi huruf
+        self.bag_rec = {}          # key -> catatan untuk rekap
+        self.bag_tent = Tentative(BAG_CONFIRM_S * fps / BAG_EVERY)
         self.counts = Counter()
 
     def clock(self, t):
         return self.clock0 + timedelta(seconds=t - self.t0)
 
+    def allocate_bag_code(self, person_num):
+        p_num = max(int(person_num or 0), 0)
+        sub_idx = self.person_bag_idx.get(p_num, 0)
+        self.person_bag_idx[p_num] = sub_idx + 1
+        return p_num, format_luggage_code(p_num, sub_idx)
 
-def create_bag(S, tid, box, label, t, persons):
+
+def create_bag(S, box, label, t, persons):
     S.next_key += 1
     key = S.next_key
     owner, d = nearest(box, persons)
-    S.bags[key] = Bag(key, box, label, t, owner if d <= R_ATTEND else None)
-    S.id2key[tid] = key
-    S.bag_rec[key] = {"label": label, "first_t": t, "last_t": t, "seen_s": 0.0,
-                      "max_state": 0, "alert": False, "review": ""}
+    linked_pid = owner if (owner is not None and d <= R_ATTEND) else 0
+    p_num, code = S.allocate_bag_code(linked_pid)
+    S.bags[key] = Bag(key, code, p_num, box, label, t, owner if d <= R_ATTEND else None)
+    S.bag_rec[key] = {"code": code, "person_num": p_num, "label": label,
+                      "first_t": t, "last_t": t, "seen_s": 0.0,
+                      "max_state": 0, "alert": False, "review": "", "max_conf": 0.0}
     return key
+
+
+def detect_bags(bag_model, frame):
+    r = bag_model.predict(frame, classes=list(BAG_CLASSES), conf=CONF_BAG_MIN,
+                          imgsz=BAG_IMGSZ, agnostic_nms=True, verbose=False)[0]
+    if r.boxes is None or len(r.boxes) == 0:
+        return []
+    xyxy = r.boxes.xyxy.cpu().numpy()
+    clss = r.boxes.cls.cpu().numpy().astype(int)
+    confs = r.boxes.conf.cpu().numpy()
+    fh, fw = frame.shape[:2]
+    dets = []
+    for box, cls, cf in zip(xyxy, clss, confs):
+        w, h = box[2] - box[0], box[3] - box[1]
+        if w < BAG_MIN_PX or h < BAG_MIN_PX or w * h > BAG_MAX_FRAC * fw * fh:
+            continue
+        dets.append((box, BAG_CLASSES.get(int(cls), "bag"), float(cf)))
+    dets.sort(key=lambda d: -d[2])
+    kept = []
+    for d in dets:
+        if any(box_iou(d[0], k[0]) >= BAG_DUP_IOU for k in kept):
+            continue
+        kept.append(d)
+    return kept
+
+
+def associate_bags(S, dets, persons, t):
+    matched, seen = set(), set()
+    for box, label, cf in dets:
+        best, key = None, None
+        cb = center(box)
+        for k, b in S.bags.items():
+            if k in matched:
+                continue
+            c2 = center(b.box)
+            d = math.hypot(cb[0] - c2[0], cb[1] - c2[1])
+            iou = box_iou(box, b.box)
+            if d <= MATCH_PX or iou >= MATCH_IOU:
+                score = d - 200.0 * iou
+                if best is None or score < best:
+                    best, key = score, k
+        if key is None:
+            on_person = any(point_in_box(cb, pbox) for _, pbox in persons)
+            weight = 1.0 if (cf >= CONF_BAG_STRONG or on_person) else BAG_WEAK_WEIGHT
+            if S.bag_tent.hit(box, t, MATCH_PX, weight):
+                key = create_bag(S, box, label, t, persons)
+            else:
+                continue
+        b = S.bags[key]
+        b.box, b.label, b.last_seen = box, label, t
+        S.bag_rec[key]["max_conf"] = max(S.bag_rec[key]["max_conf"], cf)
+        matched.add(key)
+        seen.add(key)
+    S.bag_tent.expire(t)
+    return seen
 
 
 def write_report(S, t_end, alasan):
@@ -480,14 +607,15 @@ def write_report(S, t_end, alasan):
 
     with open(base + ".csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["jenis", "id", "pertama_terlihat", "terakhir_terlihat", "lama_terlihat_s",
-                    "penyambungan_id", "jenis_tas", "status_tertinggi", "alarm_abandoned", "keputusan_satpam"])
+        w.writerow(["jenis", "id", "id_person_terkait", "pertama_terlihat", "terakhir_terlihat", "lama_terlihat_s",
+                    "penyambungan_id", "jenis_tas", "keyakinan_tertinggi", "status_tertinggi", "alarm_abandoned", "keputusan_satpam"])
         for sid, r in sorted(S.pm.records.items()):
-            w.writerow(["PERSON", f"P{sid:02d}", fmt(r["first_t"]), fmt(r["last_t"]),
-                        round(r["seen_s"], 1), r["relinks"] + r["reid"], "", "", "", ""])
+            w.writerow(["PERSON", f"P{sid:02d}", f"P{sid:02d}", fmt(r["first_t"]), fmt(r["last_t"]),
+                        round(r["seen_s"], 1), r["relinks"] + r["reid"], "", "", "", "", ""])
         for key, r in sorted(S.bag_rec.items()):
-            w.writerow(["LUGGAGE", f"L{key:02d}", fmt(r["first_t"]), fmt(r["last_t"]),
-                        round(r["seen_s"], 1), "", r["label"],
+            pid_str = f"P{r['person_num']:02d}" if r["person_num"] > 0 else "-"
+            w.writerow(["LUGGAGE", f"L{r['code']}", pid_str, fmt(r["first_t"]), fmt(r["last_t"]),
+                        round(r["seen_s"], 1), "", r["label"], round(r["max_conf"], 2),
                         STATES[STATE_BY_RANK[r["max_state"]]][0],
                         "ya" if r["alert"] else "tidak", r["review"]])
 
@@ -512,9 +640,9 @@ def write_report(S, t_end, alasan):
         f"ID orang yang disambung kembali : {n_relink}",
         f"Orang dikenali ulang (ReID)     : {n_reid}" + ("" if REID_ENABLED else "  (fitur mati)"),
         "",
-        "Catatan: jumlah ID adalah perkiraan jumlah identitas unik. Orang yang keluar lalu kembali",
-        "tercatat dengan ID baru bila tidak dapat dikenali ulang. Rincian per ID ada di file CSV.",
-        "Pada sesi berikutnya nomor ID dimulai lagi dari 01.",
+        "Catatan: selama sesi 24 jam, ID person terkunci & tidak dipakai ulang;",
+        "ID tas mengikuti angka person dengan huruf berurutan (misal 01(A), 01(B)).",
+        "Setelah sesi 24 jam berakhir & direkap, ID direset mulai dari 01.",
     ]
     with open(base + ".txt", "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
@@ -560,7 +688,7 @@ def update_bag(bag, persons, t, dt, ghosts=()):
     for pid, d in dists.items():
         if d <= R_ATTEND:
             bag.prox[pid] = bag.prox.get(pid, 0.0) + dt
-            carrying = (d == 0.0 and carried)
+            carrying = (d == 0.0 and (carried or bag.prox[pid] >= INSIDE_OWNER_S))
             if pid == bag.owner or bag.prox[pid] >= T_PROX or carrying:
                 bag.guardians.add(pid)
                 if bag.owner is None and carrying:
@@ -630,7 +758,7 @@ def log_event(t, bag, event):
         if new:
             w.writerow(["waktu_video_s", "id_tas", "jenis", "kejadian",
                         "jarak_penjaga_m", "terpisah_2m_s", "terpisah_3m_s"])
-        w.writerow([round(t, 1), bag.key, bag.label, event,
+        w.writerow([round(t, 1), bag.code, bag.label, event,
                     "" if bag.d_guard is None else round(bag.d_guard, 2),
                     round(bag.unatt_t, 1), round(bag.aband_t, 1)])
 
@@ -679,7 +807,7 @@ def draw_person(img, pbox, text):
     draw_tag(img, x1, y1, text, PERSON_COLOR)
 
 
-def draw_bag(img, bag, persons_by_id):
+def draw_bag(img, bag):
     dismissed = bag.review == "FALSE_ALARM"
     name, scolor = STATES[bag.state]
     if dismissed:
@@ -690,7 +818,7 @@ def draw_bag(img, bag, persons_by_id):
         cv2.rectangle(img, (x1 - 5, y1 - 5), (x2 + 5, y2 + 5), scolor, 3)
 
     cv2.rectangle(img, (x1, y1), (x2, y2), BAG_COLOR, 2)
-    draw_tag(img, x1, y1, f"LUGGAGE L{bag.key:02d}", BAG_COLOR)
+    draw_tag(img, x1, y1, f"LUGGAGE {bag.code}", BAG_COLOR)
 
     if dismissed:
         text = "Alarm palsu (diabaikan)"
@@ -712,7 +840,8 @@ def draw_bag(img, bag, persons_by_id):
 
 def main():
     os.makedirs(SAVE_DIR, exist_ok=True)
-    model = YOLO(MODEL_PATH)
+    person_model = YOLO(MODEL_PATH)
+    bag_model = YOLO(BAG_MODEL_PATH)
     cap = cv2.VideoCapture(SOURCE)
 
     if not cap.isOpened():
@@ -724,7 +853,7 @@ def main():
     if not fps or fps <= 0:
         fps = 25.0
 
-    conf_min = min(CONF_PERSON, CONF_PERSON_TRACKED, CONF_BAG)
+    conf_person_min = min(CONF_PERSON, CONF_PERSON_TRACKED)
     tracker_cfg = make_tracker_cfg(round(TRACK_BUFFER_S * fps))
 
     S, frame_idx, last_t = None, 0, None
@@ -745,38 +874,34 @@ def main():
                 break
 
             t = frame_idx / fps if is_file else time.time()
+            n_frame = frame_idx
             frame_idx += 1
 
             if S is None:
                 S = Session(t, fps, 1)
-                print(f"[SESI 1] dimulai {S.clock0:%Y-%m-%d %H:%M:%S}; ID direset setiap {fmt_durasi(SESSION_S)}.")
+                print(f"[SESI 1] dimulai {S.clock0:%Y-%m-%d %H:%M:%S}; ID dikunci selama {fmt_durasi(SESSION_S)}.")
             elif t - S.t0 >= SESSION_S:
                 write_report(S, t, f"batas {fmt_durasi(SESSION_S)} tercapai")
                 S = Session(t, fps, S.number + 1)
                 print(f"[SESI {S.number}] dimulai; ID person dan tas mulai lagi dari 01.")
 
-            dt = 0.0 if last_t is None else min(max(t - last_t, 0.0), 1.0)
             last_t = t
 
-            r = model.track(
+            r = person_model.track(
                 frame, persist=True, tracker=tracker_cfg,
-                classes=[PERSON_CLASS, *BAG_CLASSES], conf=conf_min,
-                imgsz=IMGSZ, agnostic_nms=True, verbose=False,
+                classes=[PERSON_CLASS], conf=conf_person_min,
+                imgsz=IMGSZ, verbose=False,
             )[0]
 
-            person_dets, bag_dets = [], []
+            person_dets = []
             if r.boxes is not None and r.boxes.id is not None:
                 xyxy = r.boxes.xyxy.cpu().numpy()
                 ids = r.boxes.id.cpu().numpy().astype(int)
-                clss = r.boxes.cls.cpu().numpy().astype(int)
                 confs = r.boxes.conf.cpu().numpy()
-                for box, tid, cls, cf in zip(xyxy, ids, clss, confs):
-                    if cls == PERSON_CLASS:
-                        thr = CONF_PERSON_TRACKED if S.pm.known(int(tid)) else CONF_PERSON
-                        if cf >= thr:
-                            person_dets.append((int(tid), box))
-                    elif cls in BAG_CLASSES and cf >= CONF_BAG:
-                        bag_dets.append((int(tid), box, BAG_CLASSES[cls]))
+                for box, tid, cf in zip(xyxy, ids, confs):
+                    thr = CONF_PERSON_TRACKED if S.pm.known(int(tid)) else CONF_PERSON
+                    if cf >= thr:
+                        person_dets.append((int(tid), box))
 
             persons, ghost_persons, relink_events, reid_events, new_id_events = S.pm.resolve(person_dets, t, frame)
             for ev in relink_events:
@@ -793,60 +918,55 @@ def main():
                       f"tidak disambung ke yang hilang -> {alasan}")
                 log_new_id(ev)
 
-            seen = set()
-            for tid, box, label in bag_dets:
-                key = S.id2key.get(tid)
-                if key not in S.bags or key in seen:
-                    key, best = None, MATCH_PX
-                    cb = center(box)
-                    for k, b in S.bags.items():
-                        if k in seen:
-                            continue
-                        cb2 = center(b.box)
-                        d = math.hypot(cb[0] - cb2[0], cb[1] - cb2[1])
-                        if d < best:
-                            key, best = k, d
-                    if key is None:
-                        if S.bag_tent.hit(box, t, MATCH_PX):
-                            key = create_bag(S, tid, box, label, t, persons)
-                        else:
-                            continue
-                    S.id2key[tid] = key
-                bag = S.bags[key]
-                bag.box, bag.label, bag.last_seen = box, label, t
-                seen.add(key)
-            S.bag_tent.expire(t)
-
-            for key in seen:
-                b = S.bags[key]
-                update_bag(b, persons, t, dt, ghost_persons)
-                rec = S.bag_rec[key]
-                rec["last_t"] = t
-                rec["seen_s"] += dt
-                rec["max_state"] = max(rec["max_state"], STATE_RANK[b.state])
-                if DEBUG_PRINT:
-                    print(f"t={t:6.1f}s orang={[p for p, _ in persons]} hantu={[p for p, _ in ghost_persons]} "
-                          f"penjaga={sorted(b.guardians)} d={b.d_guard} status={b.state}")
-                if b.state != b.logged_state:
-                    if not (b.logged_state is None and b.state == "ATTENDED"):
-                        log_event(t, b, b.state)
-                    b.logged_state = b.state
+            if n_frame % BAG_EVERY == 0:
+                seen = associate_bags(S, detect_bags(bag_model, frame), persons, t)
+                for key in seen:
+                    b = S.bags[key]
+                    bdt = min(max(t - b.last_upd, 0.0), 1.0)
+                    b.last_upd = t
+                    update_bag(b, persons, t, bdt, ghost_persons)
+                    rec = S.bag_rec[key]
+                    rec["last_t"] = t
+                    rec["seen_s"] += bdt
+                    rec["max_state"] = max(rec["max_state"], STATE_RANK[b.state])
+                    if DEBUG_PRINT:
+                        print(f"t={t:6.1f}s orang={[p for p, _ in persons]} hantu={[p for p, _ in ghost_persons]} "
+                              f"tas={b.code} penjaga={sorted(b.guardians)} d={b.d_guard} status={b.state}")
+                    if b.state != b.logged_state:
+                        if not (b.logged_state is None and b.state == "ATTENDED"):
+                            log_event(t, b, b.state)
+                        b.logged_state = b.state
             for key in [k for k, b in S.bags.items() if t - b.last_seen > BAG_MEMORY_S]:
                 del S.bags[key]
 
             out = frame.copy()
             h, w = out.shape[:2]
-            persons_by_id = dict(persons)
             visible = [b for b in S.bags.values() if t - b.last_seen <= GHOST_DRAW]
+            persons_by_id = dict(persons)
+
+            carried_by = {}
+            for b in visible:
+                if b.link_pid is not None and b.d_guard is not None and b.d_guard <= R_ATTEND \
+                        and (b.link_pid in b.guardians or b.link_pid == b.owner) \
+                        and b.review != "FALSE_ALARM":
+                    carried_by.setdefault(b.link_pid, []).append(b)
 
             for pid, pbox in persons:
-                lock_tag = " [LOCK]" if LOCK_PERSON_ID and pid in S.pm.locked_sids else ""
-                draw_person(out, pbox, f"PERSON P{pid:02d}{lock_tag}")
+                text = f"PERSON P{pid:02d}"
+                if pid in carried_by:
+                    text += " | " + ",".join(b.code for b in carried_by[pid])
+                draw_person(out, pbox, text)
+            for pid, bags_of in carried_by.items():
+                if pid in persons_by_id:
+                    pc = center(persons_by_id[pid])
+                    for b in bags_of:
+                        bc = center(b.box)
+                        cv2.line(out, (int(pc[0]), int(pc[1])), (int(bc[0]), int(bc[1])), (255, 255, 255), 1, cv2.LINE_AA)
 
             counts = {s: 0 for s in STATES}
             new_alerts = []
             for bag in visible:
-                draw_bag(out, bag, persons_by_id)
+                draw_bag(out, bag)
                 if bag.review != "FALSE_ALARM":
                     counts[bag.state] += 1
                 if bag.state == "ABANDONED" and bag.review is None and not bag.alerted:
@@ -867,9 +987,9 @@ def main():
                 S.bag_rec[bag.key]["alert"] = True
                 S.counts["ALERT"] += 1
                 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                path = os.path.join(SAVE_DIR, f"tas{bag.key}_{stamp}.jpg")
+                path = os.path.join(SAVE_DIR, f"tas_{bag.code}_{stamp}.jpg")
                 cv2.imwrite(path, out)
-                print(f"[ALERT] tas L{bag.key:02d} ({bag.label}) memenuhi kriteria ABANDONED, "
+                print(f"[ALERT] tas {bag.code} ({bag.label}) memenuhi kriteria ABANDONED, "
                       f"waktu video {t:.1f}s, tersimpan: {path}")
 
             if w > 1280:

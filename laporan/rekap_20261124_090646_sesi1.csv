@@ -1,0 +1,7 @@
+jenis,id,pertama_terlihat,terakhir_terlihat,lama_terlihat_s,penyambungan_id,jenis_tas,status_tertinggi,alarm_abandoned,keputusan_satpam
+PERSON,P01,2026-11-24 09:06:47,2026-11-24 09:07:01,14.2,0,,,,
+PERSON,P02,2026-11-24 09:06:47,2026-11-24 09:07:01,8.8,1,,,,
+PERSON,P03,2026-11-24 09:06:53,2026-11-24 09:07:01,5.7,1,,,,
+LUGGAGE,L01,2026-11-24 09:06:47,2026-11-24 09:06:56,7.8,,handbag,Dalam pengawasan,tidak,
+LUGGAGE,L02,2026-11-24 09:06:55,2026-11-24 09:07:01,5.0,,handbag,Dalam pengawasan,tidak,
+LUGGAGE,L03,2026-11-24 09:07:00,2026-11-24 09:07:01,0.8,,backpack,Dalam pengawasan,tidak,

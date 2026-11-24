@@ -1,0 +1,16 @@
+REKAP SESI 1
+Sumber       : video_uji16.mp4
+Periode      : 2026-11-24 09:16:57 s.d. 2026-11-24 09:17:29 (durasi 0j 0m 31d)
+Sesi berakhir: program dihentikan atau video selesai (rekap sementara)
+
+Jumlah ID person : 4
+Jumlah ID tas    : 3  (backpack: 1, handbag: 2)
+Tas yang mencapai 'Perlu perhatian' atau lebih : 0
+Tas yang memicu SECURITY ALERT                 : 0
+Keputusan petugas: alarm palsu 0, ditangani 0
+ID orang yang disambung kembali : 2
+Orang dikenali ulang (ReID)     : 0  (fitur mati)
+
+Catatan: jumlah ID adalah perkiraan jumlah identitas unik. Orang yang keluar lalu kembali
+tercatat dengan ID baru bila tidak dapat dikenali ulang. Rincian per ID ada di file CSV.
+Pada sesi berikutnya nomor ID dimulai lagi dari 01.
