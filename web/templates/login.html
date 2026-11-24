@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Pantau Tas</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #102a43; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 360px; text-align: center; }
+        h2 { color: #102a43; margin-bottom: 8px; font-size: 22px; }
+        p { color: #627d98; font-size: 13px; margin-bottom: 25px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #bcccdc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { background: #008080; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; margin-top: 10px; }
+        button:hover { background: #006666; }
+        .error { color: #c53030; font-size: 13px; margin-bottom: 15px; background: #ffe3e3; padding: 8px; border-radius: 4px; }
+        .footer-text { margin-top: 20px; font-size: 12px; color: #829ab1; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Masuk ke Pantau Tas</h2>
+        <p>Sistem monitoring tas tertinggal area kampus</p>
+        
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="error">{{ messages[0] }}</div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="Username (admin / satpam)" required>
+            <input type="password" name="password" placeholder="Password (123)" required>
+            <button type="submit">Masuk</button>
+        </form>
+        <div class="footer-text">Akses untuk Satpam dan Admin.</div>
+    </div>
+</body>
+</html>
