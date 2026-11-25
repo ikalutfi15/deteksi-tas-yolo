@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Riwayat Kejadian - Pantau Tas</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { display: flex; min-height: 100vh; background: #f4f6f9; color: #1f2937; }
+    .sidebar {
+      width: 220px; background: #0f172a; color: #fff;
+      display: flex; flex-direction: column; justify-content: space-between; padding: 20px 0;
+    }
+    .brand { padding: 0 20px 20px; border-bottom: 1px solid #1e293b; }
+    .brand h2 { font-size: 18px; margin-bottom: 4px; }
+    .brand p { font-size: 12px; color: #94a3b8; }
+    .nav a {
+      display: block; padding: 12px 20px; color: #cbd5e1; text-decoration: none; font-size: 14px;
+    }
+    .nav a:hover, .nav a.active { background: #1e293b; color: #fff; font-weight: bold; }
+    .logout { padding: 0 20px; }
+    .logout a { color: #f87171; text-decoration: none; font-size: 14px; }
+    .main { flex: 1; padding: 24px 32px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f8fafc; font-weight: bold; }
+    .empty { color: #6b7280; padding: 16px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <h2>Pantau Tas</h2>
+        <p>Monitoring Kampus</p>
+      </div>
+      <nav class="nav">
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('live_monitoring') }}">Live Monitoring</a>
+        <a href="{{ url_for('riwayat_kejadian') }}" class="active">Riwayat Kejadian</a>
+      </nav>
+    </div>
+    <div class="logout">
+      <a href="{{ url_for('logout') }}">Keluar (Logout)</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1>Riwayat Kejadian</h1>
+      <span>{{ user.username|capitalize }} ({{ user.role }})</span>
+    </div>
+
+    <div class="card">
+      <h3>Log Kejadian dari CSV (log_kejadian.csv)</h3>
+      {% if csv_rows %}
+      <table>
+        <thead>
+          <tr>
+            <th>Waktu Video (s)</th>
+            <th>ID Tas</th>
+            <th>Jenis</th>
+            <th>Kejadian</th>
+            <th>Jarak Penjaga (m)</th>
+            <th>Terpisah 2m (s)</th>
+            <th>Terpisah 3m (s)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in csv_rows %}
+          <tr>
+            <td>{{ r.get('waktu_video_s', '-') }}</td>
+            <td>{{ r.get('id_tas', '-') }}</td>
+            <td>{{ r.get('jenis', '-') }}</td>
+            <td>{{ r.get('kejadian', '-') }}</td>
+            <td>{{ r.get('jarak_penjaga_m', '-') }}</td>
+            <td>{{ r.get('terpisah_2m_s', '-') }}</td>
+            <td>{{ r.get('terpisah_3m_s', '-') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">Belum ada data pada log_kejadian.csv.</p>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>
