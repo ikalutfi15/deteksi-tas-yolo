@@ -124,3 +124,7 @@ waktu_video_s,id_tas,jenis,kejadian,jarak_penjaga_m,terpisah_2m_s,terpisah_3m_s
 22.4,01(C),handbag,TEMP_UNATTENDED,2.14,0.0,0.0
 26.2,01(C),handbag,ATTENDED,0.96,0.0,0.0
 26.4,01(B),suitcase,ATTENDED,1.39,0.0,0.0
+22.0,L01(B),01-2,suitcase,TEMP_UNATTENDED,2.07,0.0,0.0
+22.4,L01(C),01-3,handbag,TEMP_UNATTENDED,2.14,0.0,0.0
+26.2,L01(C),01-3,handbag,ATTENDED,0.96,0.0,0.0
+26.4,L01(B),01-2,suitcase,ATTENDED,1.39,0.0,0.0

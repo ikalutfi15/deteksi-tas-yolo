@@ -40,3 +40,7 @@ waktu_video_s,id_mentah_baru,id_stabil,selisih_posisi_px,hilang_s
 4.4,3,3,orang_baru,P02: relink nonaktif (ID terkunci unik per orang)
 5.0,3,4,orang_baru,P02: relink nonaktif (ID terkunci unik per orang); P03: relink nonaktif (ID terkunci unik per orang)
 26.5,10,6,orang_baru,P01: relink nonaktif (ID terkunci unik per orang)
+7.2,7,P01,disambung,hilang 0.2s; selisih posisi 72px
+8.8,,P02,dipensiunkan,terakhir terlihat t=7.8s; ID tidak akan dipakai orang lain sampai sesi berakhir
+20.9,10,P01,disambung,hilang 0.0s; selisih posisi 85px
+27.8,,P01,dipensiunkan,terakhir terlihat t=26.8s; ID tidak akan dipakai orang lain sampai sesi berakhir
