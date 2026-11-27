@@ -2,111 +2,157 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Monitoring - Pantau Tas</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* Sidebar Kiri */
-        .sidebar-menu { width: 240px; background-color: #102a43; color: white; display: flex; flex-direction: column; padding-top: 20px; }
-        .sidebar-brand { padding: 0 20px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .sidebar-brand h2 { margin: 0; font-size: 18px; color: #fff; }
-        .sidebar-brand p { margin: 5px 0 0 0; font-size: 12px; color: #829ab1; }
-        .nav-links { list-style: none; padding: 0; margin: 20px 0 0 0; }
-        .nav-links li a { display: block; padding: 12px 20px; color: #bcccdc; text-decoration: none; font-size: 14px; }
-        .nav-links li.active a, .nav-links li a:hover { background-color: #243b53; color: white; border-left: 4px solid #00b4d8; }
-
-        /* Konten Utama */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
-        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: transparent; }
-        header h1 { margin: 0; font-size: 24px; color: #102a43; }
-        .user-role { font-size: 14px; color: #486581; font-weight: 600; }
-
-        /* Grid Layout Live Monitoring */
-        .monitoring-container { display: flex; gap: 20px; padding: 0 30px 30px 30px; align-items: flex-start; }
-        
-        /* Kotak Video / Stream */
-        .video-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 2px solid #e02424; width: 700px; }
-        .video-header { font-size: 13px; color: #333; margin-bottom: 10px; font-weight: 500; }
-        .video-box { background: #1a202c; border-radius: 6px; overflow: hidden; position: relative; height: 400px; display: flex; justify-content: center; align-items: center; }
-        .video-box img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .video-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
-        .camera-title { font-weight: 600; color: #102a43; font-size: 14px; }
-        .badge-alert { background-color: #ffe3e3; color: #c53030; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-
-        /* Panel Kanan (Statistik Deteksi) */
-        .stats-panel { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); width: 320px; }
-        .stats-panel h3 { margin-top: 0; font-size: 16px; color: #102a43; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .stat-item { display: flex; justify-content: space-between; margin: 15px 0; font-size: 14px; color: #334e68; }
-        .stat-value { font-weight: 600; color: #102a43; }
-        .stat-value.alert { color: #c53030; }
-        
-        .btn-detail { display: block; width: 100%; background: #008080; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; margin-top: 20px; box-sizing: border-box; }
-        .btn-detail:hover { background: #006666; }
-    </style>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Konfigurasi Tema Khusus (Font, Warna, dll) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            sidebar: '#0f172a',      /* Warna biru gelap sidebar */
+                            sidebarActive: '#1e293b',/* Warna aktif sidebar */
+                            primary: '#0e7490',      /* Warna toska utama (Tombol/Grafik) */
+                            primaryHover: '#155e75', /* Warna hover toska */
+                            alertBg: '#fef2f2',      /* Background alert merah muda */
+                            alertBorder: '#fecaca',  /* Border alert merah */
+                            alertText: '#991b1b',    /* Teks alert merah tua */
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Segoe UI', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased flex min-h-screen overflow-x-hidden">
 
-    <!-- Sidebar Navigasi Kiri -->
-    <div class="sidebar-menu">
-        <div class="sidebar-brand">
-            <h2>Pantau Tas</h2>
-            <p>Monitoring Kampus</p>
-        </div>
-        <ul class="nav-links">
-            <li><a href="/dashboard">Dashboard</a></li>
-            <li class="active"><a href="/live-monitoring">Live Monitoring</a></li>
-            <li><a href="/riwayat-kejadian">Riwayat Kejadian</a></li>
-            <li><a href="#">Kamera</a></li>
-            <li><a href="#">Pengaturan</a></li>
-        </ul>
-    </div>
+    {% include 'sidebar.html' %}
 
-    <!-- Konten Utama -->
-    <div class="main-content">
-        <header>
-            <h1>Live Monitoring</h1>
-            <div class="user-role">Petugas Satpam</div>
-        </header>
+        <!-- Isi Live Monitoring -->
+        <div class="p-6 lg:p-8 space-y-5 max-w-7xl w-full mx-auto">
 
-        <div class="monitoring-container">
-            <!-- Kotak Live Stream CCTV -->
-            <div class="video-card">
-                <div class="video-header">Kamera 01 · Kantin · Live</div>
-                <div class="video-box">
-                    <!-- Mengambil stream dari backend Flask -->
-                    <img src="{{ url_for('video_feed') }}" alt="CCTV Stream">
+            <!-- Judul Halaman & Badge Status -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Live Monitoring</h2>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-700 shadow-sm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                        YOLOv8 AI Active
+                    </span>
                 </div>
-                <div class="video-footer">
-                    <span class="camera-title">Kamera 01 · Kantin</span>
-                    <span class="badge-alert">Tas tertinggal</span>
+
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-700 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-brand-primary"></span>
+                        {% if user is defined and user %}
+                            {{ user.role.capitalize() }} ({{ user.username }}) • Online
+                        {% else %}
+                            Petugas Satpam (posko) • Online
+                        {% endif %}
+                    </span>
                 </div>
             </div>
 
-            <!-- Panel Statistik Sisi Kanan -->
-            <div class="stats-panel">
-                <h3>Deteksi saat ini</h3>
-                <div class="stat-item">
-                    <span>Status kamera</span>
-                    <span class="stat-value" style="color: #2b8a3e;">Online</span>
-                </div>
-                <div class="stat-item">
-                    <span>Tas terdeteksi</span>
-                    <span class="stat-value">1</span>
-                </div>
-                <div class="stat-item">
-                    <span>Orang terdeteksi</span>
-                    <span class="stat-value">1</span>
-                </div>
-                <div class="stat-item">
-                    <span>Tas ditinggal</span>
-                    <span class="stat-value alert">01:12 menit</span>
+            <!-- Grid Utama: Stream CCTV Kiri + Panel Informasi Kanan -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+                <!-- Kotak Live Stream CCTV -->
+                <div class="bg-white rounded-xl border border-brand-alertBorder shadow-sm p-4 lg:col-span-8">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                            <span class="w-2 h-2 rounded-full bg-brand-primary"></span>
+                            <span>Kamera 01 • Kantin Utama • Live</span>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500">Stream Real-Time</span>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-lg overflow-hidden border border-slate-200 aspect-video flex items-center justify-center">
+                        <img src="{{ url_for('video_feed') }}" alt="CCTV Stream" class="w-full h-full object-cover">
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 mt-3.5 pt-3 border-t border-slate-100">
+                        <span class="font-semibold text-slate-800 text-sm">Kamera 01 • Kantin Utama</span>
+                        <span class="inline-flex items-center gap-1.5 bg-brand-alertBg border border-brand-alertBorder text-brand-alertText px-3 py-1 rounded-full text-xs font-semibold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                            Tas tertinggal
+                        </span>
+                    </div>
                 </div>
 
-                <a href="/riwayat-kejadian" class="btn-detail">Lihat detail kejadian</a>
+                <!-- Kolom Kanan: Deteksi Saat Ini + Kasus Tas Tertinggal -->
+                <div class="space-y-4 lg:col-span-4">
+
+                    <!-- Kartu 1: Deteksi Saat Ini -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                        <div class="flex items-start justify-between gap-2 pb-3.5 border-b border-slate-100">
+                            <div>
+                                <h3 class="text-base font-bold text-slate-800 leading-snug">Deteksi Saat Ini</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">Kamera 01 • Kantin Utama</p>
+                            </div>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-primary/10 border border-brand-primary/25 text-brand-primary shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                                Aktif
+                            </span>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                            <div class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                                <span class="text-xs sm:text-sm font-medium text-slate-600">Orang Terdeteksi Aktif</span>
+                                <span class="text-base sm:text-lg font-bold text-slate-800 tabular-nums">2 Orang</span>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                                <span class="text-xs sm:text-sm font-medium text-slate-600">Tas Terdeteksi Aktif</span>
+                                <span class="text-base sm:text-lg font-bold text-slate-800 tabular-nums">1 Tas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kartu 2: Kasus Tas Tertinggal -->
+                    <div class="bg-brand-alertBg/70 rounded-xl border border-brand-alertBorder shadow-sm p-5">
+                        <div class="flex items-start justify-between gap-2 pb-3.5 border-b border-brand-alertBorder/80">
+                            <h3 class="text-base font-bold text-slate-800 leading-snug">Kasus Tas Tertinggal</h3>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white border border-brand-alertBorder text-brand-alertText shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                                Alert
+                            </span>
+                        </div>
+
+                        <div class="mt-4 rounded-lg bg-white/90 border border-brand-alertBorder/80 divide-y divide-brand-alertBorder/60 px-4">
+                            <div class="flex items-center justify-between gap-3 py-3 text-xs sm:text-sm">
+                                <span class="text-slate-600 font-medium">Jam Tas Tertinggal</span>
+                                <span class="font-bold text-slate-800 tabular-nums">12:41 WIB</span>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 py-3 text-xs sm:text-sm">
+                                <span class="text-slate-600 font-medium">ID Person Pemilik Tas</span>
+                                <span class="font-bold text-slate-800 tabular-nums">P-04</span>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 py-3 text-xs sm:text-sm">
+                                <span class="text-slate-600 font-medium">ID Tas Tertinggal</span>
+                                <span class="font-bold text-brand-alertText tabular-nums">B-02</span>
+                            </div>
+                        </div>
+
+                        <a href="/riwayat" class="mt-4 w-full bg-brand-primary hover:bg-brand-primaryHover text-white font-semibold text-sm py-3 px-4 rounded-lg transition shadow-sm flex items-center justify-center gap-2">
+                            <span>Lihat Detail Kejadian</span>
+                            <span>&rarr;</span>
+                        </a>
+                    </div>
+
+                </div>
             </div>
+
         </div>
-    </div>
+    </main>
 
 </body>
 </html>

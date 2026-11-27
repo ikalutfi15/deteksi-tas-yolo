@@ -33,133 +33,311 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
+<body class="bg-slate-100 font-sans text-slate-800 antialiased flex min-h-screen overflow-x-hidden">
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-brand-sidebar text-slate-300 flex flex-col justify-between hidden md:flex">
-        <div>
-            <!-- Logo / Judul -->
-            <div class="p-6 border-b border-slate-800">
-                <h1 class="text-white text-lg font-bold tracking-wide">Pantau Tas</h1>
-                <p class="text-xs text-slate-400 mt-0.5">Monitoring Kampus</p>
-            </div>
-            <!-- Menu Navigasi (Sudah disambungkan ke rute Flask) -->
-            <nav class="mt-4 space-y-1 px-3">
-                <a href="/dashboard" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-sidebarActive text-white font-medium text-sm">
-                    Dashboard
-                </a>
-                <a href="/live-monitoring" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                    Live Monitoring
-                </a>
-                <a href="/riwayat" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                    Riwayat Kejadian
-                </a>
-                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                    Kamera
-                </a>
-                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                    Pengaturan
-                </a>
-            </nav>
-        </div>
-        <!-- Tombol Logout di Bawah Sidebar -->
-        <div class="p-4 border-t border-slate-800">
-            <a href="/logout" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-400 hover:bg-slate-800 hover:text-red-300 text-sm transition font-medium">
-                Keluar (Logout)
-            </a>
-        </div>
-    </aside>
-
-    <!-- KONTEN UTAMA -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-        <!-- Header Atas -->
-        <header class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
-            <h2 class="text-xl font-bold text-slate-800">Dashboard</h2>
-            <div class="text-sm font-medium text-slate-600">
-                {% if user is defined and user %}
-                    {{ user.role.capitalize() }} ({{ user.username }})
-                {% else %}
-                    Petugas Satpam
-                {% endif %}
-            </div>
-        </header>
+    {% include 'sidebar.html' %}
 
         <!-- Isi Dashboard -->
-        <div class="p-8 space-y-6 max-w-7xl w-full mx-auto">
-            
-            <!-- Alert Banner: Tas Tertinggal -->
-            <div class="bg-brand-alertBg border border-brand-alertBorder rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
-                <div>
-                    <h3 class="text-brand-alertText font-bold text-base">Tas tertinggal terdeteksi</h3>
-                    <p class="text-sm text-red-700/80 mt-0.5">Kamera 01 • Kantin • ditinggal 01:12 menit</p>
+        <div class="p-6 lg:p-8 space-y-5 max-w-7xl w-full mx-auto">
+
+            <!-- Judul Halaman & Badge Status -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Dashboard</h2>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-700 shadow-sm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                        YOLOv8 AI Active
+                    </span>
                 </div>
-                <a href="/live-monitoring" class="bg-brand-primary hover:bg-brand-primaryHover text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm text-center">
+
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-700 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-brand-primary"></span>
+                        {% if user is defined and user %}
+                            {{ user.role.capitalize() }} ({{ user.username }}) • Online
+                        {% else %}
+                            Petugas Satpam (posko) • Online
+                        {% endif %}
+                    </span>
+                    <a href="/riwayat" class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition shadow-sm" title="Notifikasi Kejadian">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Alert Banner: Tas Tertinggal -->
+            <div class="bg-brand-alertBg border border-brand-alertBorder rounded-xl px-5 py-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
+                <div class="flex items-start sm:items-center gap-3.5">
+                    <div class="w-9 h-9 rounded-lg bg-white border border-brand-alertBorder text-brand-alertText flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-brand-alertText font-bold text-sm sm:text-base">Tas tertinggal terdeteksi</h3>
+                            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-brand-alertText text-white">Aktif</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-red-700/85 mt-0.5">
+                            Kamera 01 • Kantin • <span class="font-semibold text-brand-alertText">ditinggal 01:12 menit</span>
+                        </p>
+                    </div>
+                </div>
+                <a href="/live-monitoring" class="bg-brand-primary hover:bg-brand-primaryHover text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition shadow-sm inline-flex items-center gap-2 shrink-0">
                     Lihat detail
+                    <span>&rarr;</span>
                 </a>
             </div>
 
-            <!-- Grid Statistik (4 Kartu) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Kejadian hari ini</p>
-                    <p class="text-3xl font-bold text-slate-800 mt-2">3</p>
+            <!-- Grid Statistik (8 Kartu: 2 Baris x 4 Kolom) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <!-- 1. Orang Terdeteksi Hari Ini -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Orang terdeteksi hari ini</p>
+                        <div class="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-slate-800">418</span>
+                        <span class="text-xs font-medium text-slate-500">Orang</span>
+                    </div>
+                    <p class="text-xs text-brand-primary font-medium mt-2">Terpindai sensor AI YOLOv8</p>
                 </div>
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Belum ditangani</p>
-                    <p class="text-3xl font-bold text-slate-800 mt-2">1</p>
+
+                <!-- 2. Tas Terdeteksi Hari Ini -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tas terdeteksi hari ini</p>
+                        <div class="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-slate-800">86</span>
+                        <span class="text-xs font-medium text-slate-500">Tas</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Total objek tas terdeteksi AI</p>
                 </div>
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Kamera aktif</p>
-                    <p class="text-3xl font-bold text-slate-800 mt-2">1 / 1</p>
+
+                <!-- 3. Tas Terdeteksi Aktif -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tas terdeteksi aktif</p>
+                        <div class="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-brand-primary shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-brand-primary">2</span>
+                        <span class="text-xs font-medium text-slate-500">Tas</span>
+                    </div>
+                    <p class="text-xs text-brand-primary font-medium mt-2">Terpantau di frame kamera saat ini</p>
                 </div>
-                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Alarm palsu</p>
-                    <p class="text-3xl font-bold text-slate-800 mt-2">1</p>
+
+                <!-- 4. Kejadian Hari Ini / Kasus Tas Tertinggal -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Kejadian hari ini</p>
+                        <div class="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-slate-800">3</span>
+                        <span class="text-xs font-medium text-slate-500">Kasus</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Ambang batas waktu terlewati</p>
+                </div>
+
+                <!-- 5. Sudah Ditangani -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Sudah ditangani</p>
+                        <div class="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-brand-primary shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-slate-800">2</span>
+                        <span class="text-xs font-medium text-slate-500">Kasus</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">1 verifikasi selesai, 1 dikembalikan</p>
+                </div>
+
+                <!-- 6. Belum Ditangani -->
+                <div class="bg-brand-alertBg/70 p-5 rounded-xl border border-brand-alertBorder shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-brand-alertText uppercase tracking-wider">Belum ditangani</p>
+                        <div class="w-7 h-7 rounded-md bg-white border border-brand-alertBorder flex items-center justify-center text-brand-alertText shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-brand-alertText">1</span>
+                        <span class="text-xs font-medium text-brand-alertText">Kasus</span>
+                    </div>
+                    <p class="text-xs text-red-700 font-medium mt-2">Butuh respon petugas satpam segera</p>
+                </div>
+
+                <!-- 7. Kamera Aktif -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Kamera aktif</p>
+                        <div class="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-slate-800">1 / 1</span>
+                        <span class="text-xs font-medium text-slate-500">Kamera</span>
+                    </div>
+                    <p class="text-xs text-brand-primary font-medium mt-2">100% feed kamera beroperasi online</p>
+                </div>
+
+                <!-- 8. Alarm Palsu -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Alarm palsu</p>
+                        <div class="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-1.5">
+                        <span class="text-3xl font-bold text-slate-800">1</span>
+                        <span class="text-xs font-medium text-slate-500">Kasus</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Terverifikasi bukan tas tertinggal</p>
                 </div>
             </div>
 
             <!-- Bagian Grafik & Tabel -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 <!-- Grafik Batang -->
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-6 flex flex-col justify-between">
-                    <div>
-                        <h4 class="font-bold text-slate-800 text-base mb-1">Kejadian per jam (data contoh)</h4>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-7 flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2 mb-4">
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-base">Kejadian per jam</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Distribusi rekaman deteksi AI (07.00 - 16.00 WIB)</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600">
+                            Hari Ini
+                        </span>
                     </div>
-                    <div class="h-64 mt-4">
+
+                    <div class="h-56">
                         <canvas id="hourlyChart"></canvas>
+                    </div>
+
+                    <div class="pt-3 mt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                        <span class="inline-flex items-center gap-2 font-medium text-slate-700">
+                            <span class="w-2.5 h-2.5 rounded-sm bg-brand-primary inline-block"></span>
+                            Insiden tas tertinggal
+                        </span>
+                        <span>Ambang batas alert: 30 detik tidak diawasi</span>
                     </div>
                 </div>
 
                 <!-- Tabel Kejadian Terbaru -->
-                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-6">
-                    <h4 class="font-bold text-slate-800 text-base mb-4">Kejadian terbaru</h4>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase">
-                                    <th class="py-3 px-2">Waktu</th>
-                                    <th class="py-3 px-2">Kamera</th>
-                                    <th class="py-3 px-2">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 text-sm">
-                                <tr>
-                                    <td class="py-3.5 px-2 font-medium text-slate-700">12:41</td>
-                                    <td class="py-3.5 px-2 text-slate-600">Kamera 01 • Kantin</td>
-                                    <td class="py-3.5 px-2"><span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">Baru</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="py-3.5 px-2 font-medium text-slate-700">10:15</td>
-                                    <td class="py-3.5 px-2 text-slate-600">Kamera 01 • Kantin</td>
-                                    <td class="py-3.5 px-2"><span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-medium">Selesai</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="py-3.5 px-2 font-medium text-slate-700">08:50</td>
-                                    <td class="py-3.5 px-2 text-slate-600">Kamera 01 • Kantin</td>
-                                    <td class="py-3.5 px-2"><span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-medium">Alarm palsu</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-4">
+                            <h4 class="font-bold text-slate-800 text-base">Kejadian terbaru</h4>
+                            <span class="text-xs font-medium text-slate-400">3 Log Terakhir</span>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="py-2.5 px-3 rounded-tl-lg">Waktu</th>
+                                        <th class="py-2.5 px-3">Kamera</th>
+                                        <th class="py-2.5 px-3">Status</th>
+                                        <th class="py-2.5 px-3 rounded-tr-lg text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-sm">
+                                    <tr class="hover:bg-slate-50/70 transition">
+                                        <td class="py-3.5 px-3 font-semibold text-slate-700 whitespace-nowrap">12:41</td>
+                                        <td class="py-3.5 px-3 leading-tight">
+                                            <div class="font-medium text-slate-700">Kamera 01</div>
+                                            <div class="text-xs text-slate-500">Kantin</div>
+                                        </td>
+                                        <td class="py-3.5 px-3 whitespace-nowrap">
+                                            <span class="inline-flex items-center gap-1.5 bg-brand-alertBg border border-brand-alertBorder text-brand-alertText px-2.5 py-1 rounded-full text-xs font-medium">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                                                Baru
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5 px-3 text-right whitespace-nowrap">
+                                            <a href="/detail-kejadian" class="inline-block px-3 py-1 rounded-md border border-slate-200 text-xs font-semibold text-brand-primary hover:bg-slate-50 transition">
+                                                Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50/70 transition">
+                                        <td class="py-3.5 px-3 font-semibold text-slate-700 whitespace-nowrap">10:15</td>
+                                        <td class="py-3.5 px-3 leading-tight">
+                                            <div class="font-medium text-slate-700">Kamera 01</div>
+                                            <div class="text-xs text-slate-500">Kantin</div>
+                                        </td>
+                                        <td class="py-3.5 px-3 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
+                                                Selesai
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5 px-3 text-right whitespace-nowrap">
+                                            <a href="/detail-kejadian" class="inline-block px-3 py-1 rounded-md border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                                                Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50/70 transition">
+                                        <td class="py-3.5 px-3 font-semibold text-slate-700 whitespace-nowrap">08:50</td>
+                                        <td class="py-3.5 px-3 leading-tight">
+                                            <div class="font-medium text-slate-700">Kamera 01</div>
+                                            <div class="text-xs text-slate-500">Kantin</div>
+                                        </td>
+                                        <td class="py-3.5 px-3 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 border border-slate-200 text-slate-600">
+                                                Alarm palsu
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5 px-3 text-right whitespace-nowrap">
+                                            <a href="/detail-kejadian" class="inline-block px-3 py-1 rounded-md border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                                                Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 mt-3 border-t border-slate-100">
+                        <a href="/riwayat" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-primaryHover transition">
+                            Lihat seluruh riwayat kejadian
+                            <span>&rsaquo;</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -167,28 +345,86 @@
         </div>
     </main>
 
-    <!-- Skrip Grafik Chart.js -->
+    <!-- Plugin Badge Nilai di Atas Batang Grafik + Skrip Chart.js -->
     <script>
+        const peakValuePlugin = {
+            id: 'peakValuePlugin',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                const dataset = chart.data.datasets[0];
+                const meta = chart.getDatasetMeta(0);
+                if (!dataset || !meta) return;
+
+                let maxIdx = 0;
+                dataset.data.forEach((val, idx) => {
+                    if (val > dataset.data[maxIdx]) maxIdx = idx;
+                });
+
+                const bar = meta.data[maxIdx];
+                if (!bar) return;
+
+                const labelText = String(dataset.data[maxIdx]);
+                ctx.save();
+                ctx.font = 'bold 11px Inter, "Segoe UI", sans-serif';
+                const textWidth = ctx.measureText(labelText).width;
+                const boxW = Math.max(textWidth + 10, 20);
+                const boxH = 18;
+                const x = bar.x - boxW / 2;
+                const y = bar.y - boxH - 6;
+
+                ctx.fillStyle = '#991b1b';
+                ctx.beginPath();
+                ctx.roundRect(x, y, boxW, boxH, 4);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labelText, bar.x, y + boxH / 2 + 0.5);
+                ctx.restore();
+            }
+        };
+
         const ctx = document.getElementById('hourlyChart').getContext('2d');
+        const hourlyValues = [1, 3, 1, 4, 1, 7, 1, 1, 1, 1];
+        const maxVal = Math.max(...hourlyValues);
+
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['07.00', '08.00', '09.00', '10.00', '11.00', '12.00', '13.00', '14.00', '15.00', '16.00'],
+                labels: ['07', '08', '09', '10', '11', '12', '13', '14', '15', '16'],
                 datasets: [{
-                    data: [2, 3, 4, 3, 5, 4, 2, 3, 6, 3],
-                    backgroundColor: '#0e7490',
-                    borderRadius: 4
+                    data: hourlyValues,
+                    backgroundColor: hourlyValues.map(v => v === maxVal ? '#0e7490' : '#cbd5e1'),
+                    hoverBackgroundColor: hourlyValues.map(v => v === maxVal ? '#155e75' : '#94a3b8'),
+                    borderRadius: 4,
+                    barPercentage: 0.45,
+                    categoryPercentage: 0.85
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 26 } },
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { display: false, grid: { display: false } },
-                    x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                    y: {
+                        display: false,
+                        beginAtZero: true,
+                        max: maxVal + 2,
+                        grid: { display: false }
+                    },
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 11, family: 'Inter, "Segoe UI", sans-serif' }
+                        }
+                    }
                 }
-            }
+            },
+            plugins: [peakValuePlugin]
         });
     </script>
 </body>

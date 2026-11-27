@@ -1,0 +1,106 @@
+<!-- SIDEBAR KIRI -->
+<aside class="w-64 bg-brand-sidebar text-slate-300 flex flex-col justify-between shrink-0 min-h-screen">
+    <div>
+        <!-- Logo / Judul -->
+        <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-brand-primary flex items-center justify-center text-white shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <circle cx="12" cy="11" r="2.5"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-white text-base font-bold tracking-wide leading-tight">Pantau Tas</h1>
+                <p class="text-[11px] text-slate-400">Monitoring Kampus</p>
+            </div>
+        </div>
+
+        <!-- Menu Navigasi -->
+        <nav class="mt-4 space-y-1 px-3">
+            <a href="/dashboard"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition {% if request.path == '/dashboard' %}bg-brand-sidebarActive text-white font-medium{% else %}hover:bg-slate-800 hover:text-white{% endif %}">
+                <svg class="w-4 h-4 {% if request.path == '/dashboard' %}text-slate-200{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                Dashboard
+            </a>
+
+            <a href="/live-monitoring"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition {% if request.path == '/live-monitoring' %}bg-brand-sidebarActive text-white font-medium{% else %}hover:bg-slate-800 hover:text-white{% endif %}">
+                <svg class="w-4 h-4 {% if request.path == '/live-monitoring' %}text-slate-200{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Live Monitoring
+            </a>
+
+            <a href="/riwayat"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition {% if request.path.startswith('/riwayat') or request.path.startswith('/detail') %}bg-brand-sidebarActive text-white font-medium{% else %}hover:bg-slate-800 hover:text-white{% endif %}">
+                <svg class="w-4 h-4 {% if request.path.startswith('/riwayat') or request.path.startswith('/detail') %}text-slate-200{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Riwayat Kejadian
+            </a>
+
+            <a href="#"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition hover:bg-slate-800 hover:text-white">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                    <circle cx="12" cy="13" r="3"/>
+                </svg>
+                Kamera
+            </a>
+
+            <a href="#"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition hover:bg-slate-800 hover:text-white">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Pengaturan
+            </a>
+        </nav>
+    </div>
+
+    <!-- Status Sistem & Tombol Logout di Bawah Sidebar -->
+    <div class="p-3 border-t border-slate-800 space-y-2">
+        <div class="px-3.5 py-2.5 rounded-lg bg-brand-sidebarActive/70 border border-slate-700/60 flex items-center gap-2.5 text-xs text-slate-200">
+            <span class="w-2 h-2 rounded-full bg-brand-primary shrink-0"></span>
+            <span>Sistem Aktif (AI Engine)</span>
+        </div>
+        <a href="/logout" class="flex items-center gap-3 px-3.5 py-2 rounded-lg text-red-400 hover:bg-slate-800 hover:text-red-300 text-sm transition font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+            Keluar (Logout)
+        </a>
+    </div>
+</aside>
+
+<!-- KONTEN UTAMA (HEADER ATAS TETAP) -->
+<main class="flex-1 flex flex-col min-h-screen overflow-y-auto bg-slate-100">
+    <!-- Header Atas -->
+    <header class="bg-white border-b border-slate-200 px-6 lg:px-8 py-3 flex justify-between items-center shrink-0">
+        <span class="text-sm font-semibold text-slate-700">Sistem Pemantauan Kampus</span>
+        <div class="flex items-center gap-3">
+            <div class="text-right leading-tight">
+                <div class="text-xs font-semibold text-slate-800">
+                    {% if user is defined and user %}
+                        {{ user.role.capitalize() }} ({{ user.username }})
+                    {% else %}
+                        Satpam (satpam)
+                    {% endif %}
+                </div>
+                <div class="text-[11px] text-slate-500">Pos Kontrol Pusat</div>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-brand-primary/10 border border-brand-primary/30 text-brand-primary flex items-center justify-center font-bold text-xs">
+                {% if user is defined and user %}
+                    {{ user.username[:2]|upper }}
+                {% else %}
+                    SA
+                {% endif %}
+            </div>
+        </div>
+    </header>

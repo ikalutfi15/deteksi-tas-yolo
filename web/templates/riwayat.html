@@ -6,16 +6,20 @@
     <title>Riwayat Kejadian - Pantau Tas</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Konfigurasi Tema Khusus (Font, Warna, dll) -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         brand: {
-                            sidebar: '#0f172a',      /* Biru gelap sidebar */
+                            sidebar: '#0f172a',      /* Warna biru gelap sidebar */
                             sidebarActive: '#1e293b',/* Warna aktif sidebar */
-                            primary: '#0e7490',      /* Toska utama */
-                            primaryHover: '#155e75', /* Toska hover */
+                            primary: '#0e7490',      /* Warna toska utama (Tombol/Grafik) */
+                            primaryHover: '#155e75', /* Warna hover toska */
+                            alertBg: '#fef2f2',      /* Background alert merah muda */
+                            alertBorder: '#fecaca',  /* Border alert merah */
+                            alertText: '#991b1b',    /* Teks alert merah tua */
                         }
                     },
                     fontFamily: {
@@ -27,168 +31,233 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
+<body class="bg-slate-100 font-sans text-slate-800 antialiased flex min-h-screen overflow-x-hidden">
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-brand-sidebar text-slate-300 flex flex-col justify-between hidden md:flex">
-        <div>
-            <!-- Logo / Judul -->
-            <div class="p-6 border-b border-slate-800">
-                <h1 class="text-white text-lg font-bold tracking-wide">Pantau Tas</h1>
-                <p class="text-xs text-slate-400 mt-0.5">Monitoring Kampus</p>
-            </div>
-            <!-- Menu Navigasi -->
-            <nav class="mt-4 space-y-1 px-3">
-                <a href="/dashboard" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                    Dashboard
-                </a>
-                <a href="/live-monitoring" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                    Live Monitoring
-                </a>
-                <a href="/riwayat" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-sidebarActive text-white font-medium text-sm">
-                    Riwayat Kejadian
-                </a>
-                {% if user is defined and user.role == 'admin' %}
-                    <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                        Kamera
-                    </a>
-                    <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white text-sm transition">
-                        Pengaturan
-                    </a>
-                {% endif %}
-            </nav>
-        </div>
-
-        <!-- Tombol Logout di Bawah Sidebar -->
-        <div class="p-4 border-t border-slate-800">
-            <a href="/logout" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-400 hover:bg-slate-800 hover:text-red-300 text-sm transition font-medium">
-                Keluar (Logout)
-            </a>
-        </div>
-    </aside>
-
-    <!-- KONTEN UTAMA -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-        <!-- Header Atas -->
-        <header class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
-            <h2 class="text-xl font-bold text-slate-800">Riwayat Kejadian</h2>
-            <div class="text-sm font-medium text-slate-600">
-                {% if user is defined and user %}
-                    {{ user.role.capitalize() }} ({{ user.username }})
-                {% else %}
-                    Petugas Satpam
-                {% endif %}
-            </div>
-        </header>
+    {% include 'sidebar.html' %}
 
         <!-- Isi Riwayat Kejadian -->
-        <div class="p-8 space-y-6 max-w-7xl w-full mx-auto">
-            
-            <!-- Kartu Utama -->
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                
+        <div class="p-6 lg:p-8 space-y-5 max-w-7xl w-full mx-auto">
+
+            <!-- Judul Halaman & Badge Status -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Riwayat Kejadian</h2>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-700 shadow-sm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                        Log Deteksi AI
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-700 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-brand-primary"></span>
+                        {% if user is defined and user %}
+                            {{ user.role.capitalize() }} ({{ user.username }}) • Online
+                        {% else %}
+                            Petugas Satpam (posko) • Online
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Kartu Utama Filter & Tabel Riwayat -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+
                 <!-- Baris Filter & Tombol Ekspor -->
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <!-- Filter (Tanggal, Status, Tombol Terapkan) -->
-                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        <div class="flex flex-col">
-                            <label class="text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
-                            <input type="text" value="03 Nov 2026" class="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-brand-primary w-40">
+                <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-5 border-b border-slate-100">
+                    <form id="filterForm" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-end flex-1">
+                        <!-- Filter Tanggal -->
+                        <div>
+                            <label for="filterDate" class="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal</label>
+                            <input type="text"
+                                   id="filterDate"
+                                   name="tanggal"
+                                   value="03 Nov 2026"
+                                   placeholder="Contoh: 03 Nov 2026"
+                                   class="w-full px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15 transition">
                         </div>
-                        <div class="flex flex-col">
-                            <label class="text-xs font-semibold text-slate-600 mb-1">Status</label>
-                            <input type="text" value="Semua" class="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-brand-primary w-40">
+
+                        <!-- Filter Kamera -->
+                        <div>
+                            <label for="filterCamera" class="block text-xs font-semibold text-slate-600 mb-1.5">Kamera</label>
+                            <select id="filterCamera"
+                                    name="kamera"
+                                    class="w-full px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15 transition">
+                                <option value="">Semua Kamera</option>
+                                <option value="Kamera 01" selected>Kamera 01</option>
+                                <option value="Kamera 02">Kamera 02</option>
+                                <option value="Kamera 03">Kamera 03</option>
+                            </select>
                         </div>
-                        <div class="flex items-end">
-                            <button type="button" class="bg-brand-primary hover:bg-brand-primaryHover text-white px-5 py-2 rounded-lg text-sm font-semibold transition shadow-sm mt-5 lg:mt-0">
+
+                        <!-- Filter Status (Baru, Selesai, Alarm palsu) -->
+                        <div>
+                            <label for="filterStatus" class="block text-xs font-semibold text-slate-600 mb-1.5">Status</label>
+                            <select id="filterStatus"
+                                    name="status"
+                                    class="w-full px-3.5 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15 transition">
+                                <option value="">Semua Status</option>
+                                <option value="Baru">Baru</option>
+                                <option value="Selesai">Selesai</option>
+                                <option value="Alarm palsu">Alarm palsu</option>
+                            </select>
+                        </div>
+
+                        <!-- Tombol Terapkan -->
+                        <div>
+                            <button type="submit"
+                                    class="w-full bg-brand-primary hover:bg-brand-primaryHover text-white font-semibold text-sm px-5 py-2 rounded-lg transition shadow-sm cursor-pointer">
                                 Terapkan
                             </button>
                         </div>
-                    </div>
+                    </form>
 
-                    <!-- Tombol Ekspor PDF / Excel -->
-                    <div>
-                        <button type="button" class="border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
+                    <!-- Tombol Ekspor -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button"
+                                onclick="window.print()"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 transition shadow-sm cursor-pointer">
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
                             Ekspor PDF / Excel
                         </button>
                     </div>
                 </div>
 
-                <!-- Tabel Riwayat -->
+                <!-- Tabel Riwayat Kejadian -->
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse" id="historyTable">
                         <thead>
-                            <tr class="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                <th class="py-3.5 px-4">Waktu</th>
-                                <th class="py-3.5 px-4">Kamera</th>
-                                <th class="py-3.5 px-4">Lokasi</th>
-                                <th class="py-3.5 px-4">Durasi ditinggal</th>
-                                <th class="py-3.5 px-4">Status</th>
-                                <th class="py-3.5 px-4">Aksi</th>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3 px-4 rounded-tl-lg">Waktu</th>
+                                <th class="py-3 px-4">Kamera</th>
+                                <th class="py-3 px-4">Lokasi</th>
+                                <th class="py-3 px-4">Durasi Ditinggal</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 rounded-tr-lg text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm">
-                            <tr class="hover:bg-slate-50/60 transition">
-                                <td class="py-4 px-4 text-slate-700 font-medium">03 Nov 12:41</td>
-                                <td class="py-4 px-4 text-slate-600">Kamera 01</td>
-                                <td class="py-4 px-4 text-slate-600">Kantin</td>
-                                <td class="py-4 px-4 text-slate-600">01:12</td>
-                                <td class="py-4 px-4">
-                                    <span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-medium">Baru</span>
+                            <tr class="history-row hover:bg-slate-50/70 transition" data-date="03 Nov 2026" data-camera="Kamera 01" data-status="Baru">
+                                <td class="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">03 Nov 12:41</td>
+                                <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">Kamera 01</td>
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap">Kantin</td>
+                                <td class="py-3.5 px-4 font-medium text-brand-alertText whitespace-nowrap tabular-nums">01:12</td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1.5 bg-brand-alertBg border border-brand-alertBorder text-brand-alertText px-3 py-1 rounded-full text-xs font-medium">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                                        Baru
+                                    </span>
                                 </td>
-                                <td class="py-4 px-4">
-                                    <a href="/riwayat/detail" class="text-teal-700 hover:underline font-medium">Detail</a>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-slate-50/60 transition">
-                                <td class="py-4 px-4 text-slate-700 font-medium">03 Nov 10:15</td>
-                                <td class="py-4 px-4 text-slate-600">Kamera 01</td>
-                                <td class="py-4 px-4 text-slate-600">Kantin</td>
-                                <td class="py-4 px-4 text-slate-600">00:48</td>
-                                <td class="py-4 px-4">
-                                    <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-medium">Selesai</span>
-                                </td>
-                                <td class="py-4 px-4">
-                                    <a href="/riwayat/detail" class="text-teal-700 hover:underline font-medium">Detail</a>
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                    <a href="/detail-kejadian" class="inline-block px-3 py-1 rounded-md border border-slate-200 text-xs font-semibold text-brand-primary hover:bg-slate-50 transition">
+                                        Detail
+                                    </a>
                                 </td>
                             </tr>
-                            <tr class="hover:bg-slate-50/60 transition">
-                                <td class="py-4 px-4 text-slate-700 font-medium">03 Nov 08:50</td>
-                                <td class="py-4 px-4 text-slate-600">Kamera 01</td>
-                                <td class="py-4 px-4 text-slate-600">Kantin</td>
-                                <td class="py-4 px-4 text-slate-600">00:35</td>
-                                <td class="py-4 px-4">
-                                    <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-medium">Alarm palsu</span>
+
+                            <tr class="history-row hover:bg-slate-50/70 transition" data-date="03 Nov 2026" data-camera="Kamera 01" data-status="Selesai">
+                                <td class="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">03 Nov 10:15</td>
+                                <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">Kamera 01</td>
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap">Kantin</td>
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap tabular-nums">00:48</td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
+                                        Selesai
+                                    </span>
                                 </td>
-                                <td class="py-4 px-4">
-                                    <a href="/riwayat/detail" class="text-teal-700 hover:underline font-medium">Detail</a>
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                    <a href="/detail-kejadian" class="inline-block px-3 py-1 rounded-md border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                                        Detail
+                                    </a>
                                 </td>
                             </tr>
-                            <tr class="hover:bg-slate-50/60 transition">
-                                <td class="py-4 px-4 text-slate-700 font-medium">02 Nov 15:20</td>
-                                <td class="py-4 px-4 text-slate-600">Kamera 01</td>
-                                <td class="py-4 px-4 text-slate-600">Kantin</td>
-                                <td class="py-4 px-4 text-slate-600">02:05</td>
-                                <td class="py-4 px-4">
-                                    <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-medium">Selesai</span>
+
+                            <tr class="history-row hover:bg-slate-50/70 transition" data-date="03 Nov 2026" data-camera="Kamera 01" data-status="Alarm palsu">
+                                <td class="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">03 Nov 08:50</td>
+                                <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">Kamera 01</td>
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap">Kantin</td>
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap tabular-nums">00:35</td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 border border-slate-200 text-slate-600">
+                                        Alarm palsu
+                                    </span>
                                 </td>
-                                <td class="py-4 px-4">
-                                    <a href="/riwayat/detail" class="text-teal-700 hover:underline font-medium">Detail</a>
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                    <a href="/detail-kejadian" class="inline-block px-3 py-1 rounded-md border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                                        Detail
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <tr class="history-row hover:bg-slate-50/70 transition" data-date="02 Nov 2026" data-camera="Kamera 01" data-status="Selesai">
+                                <td class="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">02 Nov 15:20</td>
+                                <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">Kamera 01</td>
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap">Kantin</td>
+                                <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap tabular-nums">02:05</td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-brand-primary/10 text-brand-primary">
+                                        Selesai
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                    <a href="/detail-kejadian" class="inline-block px-3 py-1 rounded-md border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                                        Detail
+                                    </a>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Footer Info Tabel -->
-                <div class="text-xs text-slate-500 pt-2">
-                    Menampilkan 4 dari 4 kejadian
+                <!-- Ringkasan Jumlah Data -->
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span id="summaryText">Menampilkan 4 dari 4 kejadian</span>
                 </div>
 
             </div>
-
         </div>
     </main>
 
+    <script>
+        const filterForm = document.getElementById('filterForm');
+        const filterDate = document.getElementById('filterDate');
+        const filterCamera = document.getElementById('filterCamera');
+        const filterStatus = document.getElementById('filterStatus');
+        const rows = Array.from(document.querySelectorAll('.history-row'));
+        const summaryText = document.getElementById('summaryText');
+
+        function applyFilters() {
+            const qDate = filterDate.value.trim().toLowerCase();
+            const qCamera = filterCamera.value.trim().toLowerCase();
+            const qStatus = filterStatus.value.trim().toLowerCase();
+
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const rDate = (row.dataset.date || '').toLowerCase();
+                const rCamera = (row.dataset.camera || '').toLowerCase();
+                const rStatus = (row.dataset.status || '').toLowerCase();
+
+                const matchDate = !qDate || rDate.includes(qDate);
+                const matchCamera = !qCamera || rCamera === qCamera;
+                const matchStatus = !qStatus || rStatus === qStatus;
+
+                if (matchDate && matchCamera && matchStatus) {
+                    row.style.display = '';
+                    visibleCount += 1;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            summaryText.textContent = `Menampilkan ${visibleCount} dari ${rows.length} kejadian`;
+        }
+
+        filterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            applyFilters();
+        });
+    </script>
 </body>
 </html>
